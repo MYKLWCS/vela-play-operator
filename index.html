@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VELA — Play-money operator</title>
+  <meta name="description" content="Play-money white-label stack: casino, sports, poker, lotto, cashier. No real-money wagering." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a09;
+      --bg2: #121211;
+      --card: #171715;
+      --line: #2a2924;
+      --ink: #f3efe6;
+      --muted: #9a9486;
+      --gold: #e4c37a;
+      --gold2: #b8893a;
+      --good: #7dba7a;
+      --bad: #d36b5a;
+      --warn: #d4a24c;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--ink); font-family: "IBM Plex Sans", system-ui, sans-serif; min-height: 100%; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    a { color: inherit; }
+    .wrap { display: grid; grid-template-columns: 228px 1fr; min-height: 100vh; }
+    aside {
+      border-right: 1px solid var(--line);
+      background: #0d0d0c;
+      padding: 22px 16px;
+      position: sticky; top: 0; height: 100vh; overflow: auto;
+    }
+    .mark { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+    .mark b { font-family: "Instrument Serif", serif; font-size: 28px; letter-spacing: .02em; }
+    .mark span { color: var(--gold); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
+    .tag { color: var(--muted); font-size: 12px; margin-bottom: 22px; }
+    nav a {
+      display: block; padding: 9px 10px; border-radius: 10px; color: var(--muted);
+      text-decoration: none; font-size: 14px;
+    }
+    nav a:hover, nav a.on { background: #1c1b18; color: var(--ink); }
+    nav .sec { margin: 18px 10px 6px; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: #6f6a5e; }
+    header.app {
+      display: flex; justify-content: space-between; align-items: center; gap: 16px;
+      padding: 16px 22px; border-bottom: 1px solid var(--line); background: rgba(10,10,9,.86);
+      position: sticky; top: 0; z-index: 5; backdrop-filter: blur(10px);
+    }
+    .chips { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .pill { border: 1px solid var(--line); background: var(--card); padding: 8px 12px; border-radius: 999px; font-size: 13px; }
+    .pill b { color: var(--gold); }
+    .btn { border: 0; background: var(--gold); color: #1a1408; padding: 9px 14px; border-radius: 999px; font-weight: 600; }
+    .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    .btn.bad { background: #3a1f1b; color: #f3c4bb; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    main { padding: 22px; max-width: 1240px; }
+    .banner { border: 1px solid #3a3424; background: #16130d; color: #e8d7a8; padding: 10px 14px; border-radius: 12px; font-size: 13px; margin-bottom: 18px; }
+    .grid { display: grid; gap: 14px; }
+    .games { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+    .card {
+      background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 16px; min-height: 140px; text-align: left; color: inherit; width: 100%;
+    }
+    .card h3 { font-family: "Instrument Serif", serif; font-size: 26px; font-weight: 400; }
+    .card p, .muted { color: var(--muted); font-size: 13px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .stat { flex: 1; min-width: 140px; }
+    input, select {
+      background: #10100e; border: 1px solid var(--line); color: var(--ink);
+      padding: 10px 12px; border-radius: 10px; min-width: 0;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 500; }
+    .good { color: var(--good); }
+    .bad { color: var(--bad); }
+    .board { display: grid; gap: 8px; }
+    .cell {
+      aspect-ratio: 1; border: 1px solid var(--line); background: #121210; border-radius: 10px; color: var(--ink);
+    }
+    .cell.open { background: #1e2418; }
+    .cell.boom { background: #3a1f1b; }
+    .wheel { height: 18px; background: #10100e; border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
+    .wheel > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #7dba7a, var(--gold)); }
+    .tiles { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tile { width: 54px; height: 72px; border-radius: 8px; background: #f4efe4; color: #1a1408; display: grid; place-items: center; font-weight: 600; }
+    .tile.red { color: #9b2c1d; }
+    .numgrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .numgrid button { padding: 8px 0; border-radius: 8px; border: 1px solid var(--line); background: #121210; color: var(--ink); }
+    .numgrid button.on { background: var(--gold); color: #1a1408; }
+    .slip { background: #10100e; border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+    @media (max-width: 860px) {
+      .wrap { grid-template-columns: 1fr; }
+      aside { position: relative; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      nav { display: flex; flex-wrap: wrap; gap: 4px; }
+      nav .sec { width: 100%; margin: 10px 0 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside>
+      <div class="mark"><b id="brandName">VELA</b><span>demo</span></div>
+      <p class="tag" id="brandTag">Play-money operator · white-label</p>
+      <nav id="nav"></nav>
+    </aside>
+    <div>
+      <header class="app">
+        <div>
+          <div id="viewTitle" style="font-family:'Instrument Serif',serif;font-size:28px;">Lobby</div>
+          <div class="muted" id="viewSub">One wallet across casino, sports, poker, lotto.</div>
+        </div>
+        <div class="chips">
+          <div class="pill">Cash <b id="cashBal">0</b></div>
+          <div class="pill">Bonus <b id="bonusBal">0</b></div>
+          <button class="btn ghost" data-go="cashier">Cashier</button>
+          <button class="btn" id="claimBtn">Claim 1,000 chips</button>
+        </div>
+      </header>
+      <main>
+        <div class="banner">Play money only. No deposits of value. This is a white-label demo so you can press every surface NuxGame sells — plus poker and lotto — before anyone talks about a licence.</div>
+        <div id="app"></div>
+      </main>
+    </div>
+  </div>
+  <script>
+  const BRAND = {
+    name: "VELA",
+    tag: "Play-money operator · white-label",
+    accent: "#e4c37a"
+  };
+
+  const LINKS = [
+    { sec: "Play" },
+    { id: "lobby", label: "Lobby" },
+    { id: "casino", label: "Casino originals" },
+    { id: "sports", label: "Sportsbook" },
+    { id: "markets", label: "Prediction markets" },
+    { id: "poker", label: "Poker" },
+    { id: "lotto", label: "Lotto" },
+    { sec: "Account" },
+    { id: "cashier", label: "Cashier" },
+    { id: "vault", label: "History" },
+    { id: "vip", label: "VIP / rakeback" },
+    { sec: "Operator" },
+    { id: "vendors", label: "Vendors & adapters" },
+    { id: "affiliates", label: "Affiliates / agents" },
+    { id: "office", label: "Back office" },
+    { id: "stack", label: "Open-source stack" },
+    { id: "rg", label: "Responsible play" }
+  ];
+
+  const VENDORS = [
+    { id: "vela-originals", name: "VELA Originals", kind: "in-house", games: "Dice, Mines, Plinko, Crash, Roulette, Blackjack", status: "live", adapter: "local://originals" },
+    { id: "vela-poker", name: "VELA Poker", kind: "in-house", games: "Jacks or Better, Heads-up Hold'em", status: "live", adapter: "local://poker" },
+    { id: "vela-lotto", name: "VELA Lotto", kind: "in-house", games: "Daily 6/49", status: "live", adapter: "local://lotto" },
+    { id: "mock-sports", name: "PulseFeed mock", kind: "sports", games: "PSL, EPL, URC, UFC", status: "live", adapter: "local://sports" },
+    { id: "pragmatic", name: "Pragmatic Play", kind: "aggregator slot", games: "Requires licensed operator + contract", status: "adapter-ready", adapter: "seamless-wallet/v1" },
+    { id: "evolution", name: "Evolution", kind: "live casino", games: "Requires licensed operator + studio cert", status: "adapter-ready", adapter: "seamless-wallet/v1" },
+    { id: "hacksaw", name: "Hacksaw Gaming", kind: "slots", games: "Requires aggregator or direct", status: "adapter-ready", adapter: "seamless-wallet/v1" },
+    { id: "genius", name: "Genius Sports", kind: "odds feed", games: "Pre-match + in-play", status: "adapter-ready", adapter: "odds/v2" }
+  ];
+
+  const GAMES = [
+    { id: "dice", name: "Dice", blurb: "Over / under a target. Provably fair.", vendor: "vela-originals" },
+    { id: "mines", name: "Mines", blurb: "25 tiles. Cash out before a mine.", vendor: "vela-originals" },
+    { id: "plinko", name: "Plinko", blurb: "Drop a chip. Multiplier buckets.", vendor: "vela-originals" },
+    { id: "crash", name: "Crash", blurb: "Ride the curve. Cash out in time.", vendor: "vela-originals" },
+    { id: "roulette", name: "Roulette", blurb: "European wheel. Red, black, or a number.", vendor: "vela-originals" },
+    { id: "blackjack", name: "Blackjack", blurb: "Beat the dealer to 21.", vendor: "vela-originals" },
+    { id: "poker", name: "Video poker", blurb: "Jacks or Better, 9/6 paytable.", vendor: "vela-poker" },
+    { id: "holdem", name: "Heads-up Hold'em", blurb: "You versus the house, one street.", vendor: "vela-poker" },
+    { id: "lotto", name: "Daily Lotto", blurb: "Pick six. House draws six.", vendor: "vela-lotto" }
+  ];
+
+  const SPORTS = [
+    { id: "s1", league: "PSL", event: "Orlando Pirates vs Kaizer Chiefs", markets: { "Pirates": 2.05, "Draw": 3.20, "Chiefs": 3.40 } },
+    { id: "s2", league: "PSL", event: "Mamelodi Sundowns vs SuperSport", markets: { "Sundowns": 1.55, "Draw": 3.80, "SuperSport": 6.00 } },
+    { id: "s3", league: "EPL", event: "Arsenal vs Liverpool", markets: { "Arsenal": 2.20, "Draw": 3.40, "Liverpool": 3.10 } },
+    { id: "s4", league: "URC", event: "Lions vs Stormers", markets: { "Lions": 2.60, "Draw": 19.00, "Stormers": 1.55 } },
+    { id: "s5", league: "UFC", event: "Adesanya vs Pereira", markets: { "Adesanya": 2.10, "Pereira": 1.75 } },
+    { id: "s6", league: "SA20", event: "Joburg Super Kings vs MI Cape Town", markets: { "JSK": 1.90, "MICT": 1.90 } }
+  ];
+
+  const MARKETS = [
+    { id: "m1", q: "Will Sundowns finish top of the PSL?", yes: 0.62, no: 0.38 },
+    { id: "m2", q: "Will BTC close the week above $100k?", yes: 0.44, no: 0.56 },
+    { id: "m3", q: "Will the Springboks win their next Test?", yes: 0.71, no: 0.29 },
+    { id: "m4", q: "Rate cut before year-end?", yes: 0.33, no: 0.67 }
+  ];
+
+  const KEY = "vela-operator-v1";
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const rnd = () => Math.random();
+  const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
+  const uid = () => Math.random().toString(36).slice(2, 9);
+
+  function load() {
+    const raw = localStorage.getItem(KEY);
+    if (raw) return JSON.parse(raw);
+    return {
+      cash: 2500,
+      bonus: 500,
+      claimed: false,
+      seed: uid() + uid(),
+      nonce: 0,
+      txs: [],
+      bets: [],
+      slip: [],
+      enabled: Object.fromEntries(GAMES.map(g => [g.id, true])),
+      brand: { ...BRAND },
+      limits: { maxBet: 500, lossCap: 20000 },
+      vip: { wagered: 0, rake: 0 },
+      route: "lobby"
+    };
+  }
+  let S = load();
+  const save = () => localStorage.setItem(KEY, JSON.stringify(S));
+
+  function ledger(kind, amount, note, meta = {}) {
+    const bag = kind === "bonus" ? "bonus" : "cash";
+    S[bag] = Math.round((S[bag] + amount) * 100) / 100;
+    S.txs.unshift({ id: uid(), t: Date.now(), bag, amount, note, meta, bal: S.cash });
+    if (S.txs.length > 80) S.txs.pop();
+    if (amount < 0) S.vip.wagered += Math.abs(amount);
+    save(); renderChrome();
+  }
+
+  function canBet(amt) {
+    amt = Number(amt);
+    if (!Number.isFinite(amt) || amt <= 0) return "Enter a stake.";
+    if (amt > S.limits.maxBet) return "Over max bet.";
+    if (S.cash < amt) return "Not enough cash chips.";
+    return null;
+  }
+
+  function renderChrome() {
+    $("brandName").textContent = S.brand.name;
+    $("brandTag").textContent = S.brand.tag;
+    $("cashBal").textContent = fmt(S.cash);
+    $("bonusBal").textContent = fmt(S.bonus);
+    $("claimBtn").disabled = S.claimed;
+    const nav = $("nav");
+    nav.innerHTML = LINKS.map(l => l.sec
+      ? `<div class="sec">${l.sec}</div>`
+      : `<a href="#/${l.id}" class="${S.route===l.id||(l.id==='casino'&&GAMES.some(g=>g.id===S.route))?'on':''}">${l.label}</a>`
+    ).join("");
+  }
+
+  function go(route) {
+    S.route = route;
+    save();
+    location.hash = "#/" + route;
+    draw();
+  }
+
+  document.addEventListener("click", (e) => {
+    const g = e.target.closest("[data-go]");
+    if (g) { e.preventDefault(); go(g.dataset.go); }
+  });
+  $("claimBtn").onclick = () => {
+    if (S.claimed) return;
+    S.claimed = true;
+    ledger("cash", 1000, "Welcome faucet");
+    draw();
+  };
+
+  function title(h, s) { $("viewTitle").textContent = h; $("viewSub").textContent = s; }
+
+  function stakeBox(id = "stake") {
+    return `<label class="muted">Stake</label><input id="${id}" type="number" min="1" value="25" style="width:120px" />`;
+  }
+
+  function drawLobby() {
+    title("Lobby", "Every vertical on one wallet.");
+    return `
+      <div class="grid games">
+        ${GAMES.filter(g => S.enabled[g.id] !== false).map(g => `
+          <button class="card" data-go="${g.id}">
+            <p class="muted">${g.vendor}</p>
+            <h3>${g.name}</h3>
+            <p>${g.blurb}</p>
+          </button>`).join("")}
+        <button class="card" data-go="sports"><p class="muted">book</p><h3>Sports</h3><p>Six live boards. Slip, settle, cash-out sim.</p></button>
+        <button class="card" data-go="markets"><p class="muted">events</p><h3>Markets</h3><p>Yes / no contracts on play chips.</p></button>
+        <button class="card" data-go="cashier"><p class="muted">pam</p><h3>Cashier</h3><p>Faucet, withdraw, dual wallet.</p></button>
+      </div>`;
+  }
+
+  function drawCasino() {
+    title("Originals", "In-house games. Vendor slots plug in through the adapter list.");
+    return `<div class="grid games">${GAMES.map(g => `
+      <button class="card" data-go="${g.id}" ${S.enabled[g.id]===false?"disabled":""}>
+        <p class="muted">${S.enabled[g.id]===false?"disabled in office":g.vendor}</p>
+        <h3>${g.name}</h3><p>${g.blurb}</p>
+      </button>`).join("")}</div>`;
+  }
+
+  function outcome(note, win) {
+    return `<p class="${win>0?"good":win<0?"bad":"muted"}" style="margin-top:12px">${note}</p>`;
+  }
+
+  function drawDice() {
+    title("Dice", "Roll 0.00–99.99. Win if you beat the line.");
+    return `<div class="card">
+      <div class="row">${stakeBox()}
+        <label class="muted">Target ≥</label><input id="target" type="number" min="2" max="98" value="50" style="width:90px" />
+        <button class="btn" id="roll">Roll</button>
+      </div>
+      <p class="muted" style="margin-top:10px">Win chance and payout move with the target. Server seed nonce ${S.nonce}.</p>
+      <div id="out"></div>
+    </div>`;
+  }
+  function bindDice() {
+    $("roll").onclick = () => {
+      const stake = Number($("stake").value);
+      const err = canBet(stake); if (err) return $("out").innerHTML = outcome(err, 0);
+      const t = Math.min(98, Math.max(2, Number($("target").value) || 50));
+      const roll = Math.floor(rnd() * 10000) / 100;
+      const win = roll >= t;
+      const mult = +(99 / (100 - t)).toFixed(4);
+      const pnl = win ? +(stake * (mult - 1)).toFixed(2) : -stake;
+      S.nonce++;
+      ledger("cash", pnl, win ? `Dice ${roll} ≥ ${t}` : `Dice ${roll} miss`);
+      $("out").innerHTML = outcome(`${roll.toFixed(2)} · ${win ? "hit" : "miss"} · ${pnl>=0?"+":""}${fmt(pnl)}`, pnl);
+    };
+  }
+
+  function drawMines() {
+    title("Mines", "Five mines. Open tiles. Cash out anytime.");
+    S._mines = S._mines && S._mines.live ? S._mines : null;
+    return `<div class="card">
+      <div class="row">${stakeBox()}
+        <button class="btn" id="dealM">New board</button>
+        <button class="btn ghost" id="cashM" ${S._mines?.live?"":"disabled"}>Cash out</button>
+      </div>
+      <div class="board" id="mineBoard" style="grid-template-columns:repeat(5,1fr);margin-top:14px"></div>
+      <div id="out"></div>
+    </div>`;
+  }
+  function paintMines() {
+    const b = $("mineBoard");
+    b.innerHTML = "";
+    for (let i = 0; i < 25; i++) {
+      const btn = document.createElement("button");
+      btn.className = "cell";
+      const opened = S._mines?.open?.includes(i);
+      const boom = S._mines && !S._mines.live && S._mines.mines.includes(i);
+      if (opened) { btn.classList.add("open"); btn.textContent = "·"; }
+      if (boom) { btn.classList.add("boom"); btn.textContent = "×"; }
+      btn.onclick = () => openMine(i);
+      b.appendChild(btn);
+    }
+  }
+  function openMine(i) {
+    if (!S._mines?.live || S._mines.open.includes(i)) return;
+    if (S._mines.mines.includes(i)) {
+      S._mines.live = false;
+      ledger("cash", -S._mines.stake, "Mines hit");
+      $("out").innerHTML = outcome("Mine. Stake gone.", -1);
+      $("cashM").disabled = true;
+      paintMines(); return;
+    }
+    S._mines.open.push(i);
+    const gems = S._mines.open.length;
+    S._mines.mult = +(1 + gems * 0.28).toFixed(2);
+    $("out").innerHTML = outcome(`${gems} safe · ${S._mines.mult}x available`, 1);
+    paintMines();
+  }
+  function bindMines() {
+    paintMines();
+    $("dealM").onclick = () => {
+      const stake = Number($("stake").value);
+      const err = canBet(stake); if (err) return $("out").innerHTML = outcome(err, 0);
+      const mines = new Set();
+      while (mines.size < 5) mines.add(Math.floor(rnd() * 25));
+      S._mines = { live: true, stake, mines: [...mines], open: [], mult: 1 };
+      $("cashM").disabled = false;
+      $("out").innerHTML = outcome("Board live. Stake reserved on cash-out or hit.", 0);
+      paintMines();
+    };
+    $("cashM").onclick = () => {
+      if (!S._mines?.live || !S._mines.open.length) return;
+      const pnl = +(S._mines.stake * (S._mines.mult - 1)).toFixed(2);
+      S._mines.live = false;
+      ledger("cash", pnl, `Mines cashout ${S._mines.mult}x`);
+      $("cashM").disabled = true;
+      $("out").innerHTML = outcome(`Cashed ${S._mines.mult}x · +${fmt(pnl)}`, 1);
+    };
+  }
+
+  function drawPlinko() {
+    title("Plinko", "Eight buckets. Edges pay more.");
+    return `<div class="card">
+      <div class="row">${stakeBox()}<button class="btn" id="drop">Drop</button></div>
+      <div class="row" style="margin-top:14px">${[0.2,0.5,0.9,1.2,1.2,0.9,0.5,0.2].map(m=>`<div class="pill">${m}x</div>`).join("")}</div>
+      <div id="out"></div>
+    </div>`;
+  }
+  function bindPlinko() {
+    const buckets = [0.2,0.5,0.9,1.2,1.2,0.9,0.5,0.2];
+    $("drop").onclick = () => {
+      const stake = Number($("stake").value);
+      const err = canBet(stake); if (err) return $("out").innerHTML = outcome(err, 0);
+      const weights = [6,12,18,22,22,18,12,6];
+      let r = rnd() * weights.reduce((a,b)=>a+b,0), i = 0;
+      for (; i < weights.length; i++) { r -= weights[i]; if (r <= 0) break; }
+      const mult = buckets[Math.min(i,7)];
+      const pnl = +(stake * (mult - 1)).toFixed(2);
+      ledger("cash", pnl, `Plinko ${mult}x`);
+      $("out").innerHTML = outcome(`Landed ${mult}x · ${pnl>=0?"+":""}${fmt(pnl)}`, pnl);
+    };
+  }
+
+  function drawCrash() {
+    title("Crash", "Curve runs to a secret bust. Cash out first.");
+    return `<div class="card">
+      <div class="row">${stakeBox()}
+        <button class="btn" id="ride">Ride</button>
+        <button class="btn ghost" id="outCrash" disabled>Cash out</button>
+      </div>
+      <h3 id="multRead" style="font-size:48px;margin:12px 0">1.00x</h3>
+      <div class="wheel"><i id="bar"></i></div>
+      <div id="out"></div>
+    </div>`;
+  }
+  function bindCrash() {
+    let timer, live = false, mult = 1, bustAt = 0, stake = 0;
+    const read = $("multRead"), bar = $("bar"), outBtn = $("outCrash");
+    $("ride").onclick = () => {
+      if (live) return;
+      stake = Number($("stake").value);
+      const err = canBet(stake); if (err) return $("out").innerHTML = outcome(err, 0);
+      live = true; mult = 1;
+      bustAt = Math.max(1.01, +(Math.exp(-Math.log(rnd()) * 0.85)).toFixed(2));
+      if (bustAt > 20) bustAt = 20;
+      outBtn.disabled = false;
+      $("out").innerHTML = outcome("Riding…", 0);
+      timer = setInterval(() => {
+        mult = +(mult + 0.04 + mult * 0.012).toFixed(2);
+        read.textContent = mult.toFixed(2) + "x";
+        bar.style.width = Math.min(100, (mult / bustAt) * 100) + "%";
+        if (mult >= bustAt) {
+          clearInterval(timer); live = false; outBtn.disabled = true;
+          ledger("cash", -stake, `Crash bust ${bustAt}x`);
+          $("out").innerHTML = outcome(`Busted at ${bustAt.toFixed(2)}x`, -1);
+        }
+      }, 90);
+    };
+    outBtn.onclick = () => {
+      if (!live) return;
+      clearInterval(timer); live = false; outBtn.disabled = true;
+      const pnl = +(stake * (mult - 1)).toFixed(2);
+      ledger("cash", pnl, `Crash out ${mult}x`);
+      $("out").innerHTML = outcome(`Out at ${mult.toFixed(2)}x · +${fmt(pnl)}`, 1);
+    };
+  }
+
+  function drawRoulette() {
+    title("Roulette", "European single-zero. Red / black even money, or a straight number.");
+    return `<div class="card">
+      <div class="row">${stakeBox()}
+        <select id="betOn">
+          <option value="red">Red 2.0</option>
+          <option value="black">Black 2.0</option>
+          <option value="num">Straight number 36.0</option>
+        </select>
+        <input id="num" type="number" min="0" max="36" value="17" style="width:80px" />
+        <button class="btn" id="spin">Spin</button>
+      </div>
+      <div id="out"></div>
+    </div>`;
+  }
+  function bindRoulette() {
+    const reds = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+    $("spin").onclick = () => {
+      const stake = Number($("stake").value);
+      const err = canBet(stake); if (err) return $("out").innerHTML = outcome(err, 0);
+      const n = Math.floor(rnd() * 37);
+      const color = n === 0 ? "green" : reds.has(n) ? "red" : "black";
+      const kind = $("betOn").value;
+      let hit = false, mult = 0;
+      if (kind === "red") { hit = color === "red"; mult = 2; }
+      else if (kind === "black") { hit = color === "black"; mult = 2; }
+      else { hit = n === Number($("num").value); mult = 36; }
+      const pnl = hit ? +(stake * (mult - 1)).toFixed(2) : -stake;
+      ledger("cash", pnl, `Roulette ${n} ${color}`);
+      $("out").innerHTML = outcome(`Ball ${n} ${color} · ${pnl>=0?"+":""}${fmt(pnl)}`, pnl);
+    };
+  }
+
+  function handVal(cards) {
+    let t = 0, a = 0;
+    for (const c of cards) {
+      const r = c % 13;
+      if (r === 0) { t += 11; a++; }
+      else if (r >= 10) t += 10;
+      else t += r + 1;
+    }
+    while (t > 21 && a) { t -= 10; a--; }
+    return t;
+  }
+  function face(c) {
+    const ranks = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+    const suits = ["♠","♥","♦","♣"];
+    const r = ranks[c % 13], s = suits[Math.floor(c / 13) % 4];
+    return `<div class="tile ${s==="♥"||s==="♦"?"red":""}">${r}${s}</div>`;
+  }
+
+  function drawBlackjack() {
+    title("Blackjack", "Dealer stands on 17. Blackjack pays 3:2.");
+    return `<div class="card">
+      <div class="row">${stakeBox()}<button class="btn" id="dealBJ">Deal</button>
+        <button class="btn ghost" id="hit" disabled>Hit</button>
+        <button class="btn ghost" id="stand" disabled>Stand</button>
+      </div>
+      <p class="muted" style="margin-top:12px">Dealer</p><div class="tiles" id="dH"></div>
+      <p class="muted" style="margin-top:12px">You</p><div class="tiles" id="pH"></div>
+      <div id="out"></div>
+    </div>`;
+  }
+  function bindBlackjack() {
+    let deck, player, dealer, stake, live;
+    const ui = () => {
+      $("dH").innerHTML = dealer.map(face).join("");
+      $("pH").innerHTML = player.map(face).join("");
+    };
+    const end = (msg, pnl) => {
+      live = false; $("hit").disabled = $("stand").disabled = true;
+      ledger("cash", pnl, "Blackjack " + msg);
+      $("out").innerHTML = outcome(`${msg} · ${pnl>=0?"+":""}${fmt(pnl)}`, pnl);
+      ui();
+    };
+    const settle = () => {
+      const p = handVal(player), d = handVal(dealer);
+      if (d > 21 || p > d) end("You win", +(stake * (p===21 && player.length===2 ? 1.5 : 1)).toFixed(2));
+      else if (p === d) end("Push", 0);
+      else end("Dealer", -stake);
+    };
+    $("dealBJ").onclick = () => {
+      stake = Number($("stake").value);
+      const err = canBet(stake); if (err) return $("out").innerHTML = outcome(err, 0);
+      deck = [...Array(52).keys()].sort(() => rnd() - .5);
+      player = [deck.pop(), deck.pop()];
+      dealer = [deck.pop(), deck.pop()];
+      live = true; $("hit").disabled = $("stand").disabled = false;
+      $("out").innerHTML = "";
+      ui();
+      if (handVal(player) === 21) end("Blackjack", +(stake * 1.5).toFixed(2));
+    };
+    $("hit").onclick = () => {
+      if (!live) return;
+      player.push(deck.pop()); ui();
+      if (handVal(player) > 21) end("Bust", -stake);
+    };
+    $("stand").onclick = () => {
+      if (!live) return;
+      while (handVal(dealer) < 17) dealer.push(deck.pop());
+      settle();
+    };
+  }
+
+  const POKER_PAY = [
+    ["Royal flush", 800], ["Straight flush", 50], ["Four of a kind", 25],
+    ["Full house", 9], ["Flush", 6], ["Straight", 4], ["Three of a kind", 3],
+    ["Two pair", 2], ["Jacks or better", 1]
+  ];
+  function pokerRank(cards) {
+    const ranks = cards.map(c => c % 13).sort((a,b)=>a-b);
+    const suits = cards.map(c => Math.floor(c / 13) % 4);
+    const flush = suits.every(s => s === suits[0]);
+    const uniq = [...new Set(ranks)];
+    const counts = uniq.map(u => ranks.filter(r => r===u).length).sort((a,b)=>b-a);
+    const straight = (() => {
+      const r = [...new Set(ranks)];
+      if (r.length !== 5) return false;
+      if (r[4] - r[0] === 4) return true;
+      return r.join() === "0,9,10,11,12";
+    })();
+    const royal = flush && ranks.includes(0) && ranks.includes(12) && ranks.includes(11);
+    if (royal && straight) return 0;
+    if (flush && straight) return 1;
+    if (counts[0] === 4) return 2;
+    if (counts[0] === 3 && counts[1] === 2) return 3;
+    if (flush) return 4;
+    if (straight) return 5;
+    if (counts[0] === 3) return 6;
+    if (counts[0] === 2 && counts[1] === 2) return 7;
+    if (counts[0] === 2) {
+      const pair = uniq.filter(u => ranks.filter(r=>r===u).length===2)[0];
+      if (pair === 0 || pair >= 10) return 8;
+    }
+    return -1;
+  }
+
+  function drawPoker() {
+    title("Jacks or Better", "Hold and draw. 9/6 paytable.");
+    return `<div class="card">
+      <div class="row">${stakeBox()}<button class="btn" id="dealP">Deal</button><button class="btn ghost" id="drawP" disabled>Draw</button></div>
+      <div class="tiles" id="pokerH" style="margin:14px 0"></div>
+      <p class="muted">${POKER_PAY.map(([n,p])=>`${n} ${p}:1`).join(" · ")}</p>
+      <div id="out"></div>
+    </div>`;
+  }
+  function bindPoker() {
+    let deck, hand, holds, stake, phase;
+    const paint = () => {
+      $("pokerH").innerHTML = "";
+      hand.forEach((c, i) => {
+        const el = document.createElement("button");
+        el.className = "tile" + ((Math.floor(c/13)%4===1||Math.floor(c/13)%4===2)?" red":"");
+        el.style.outline = holds[i] ? "2px solid #e4c37a" : "0";
+        const ranks = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+        const suits = ["♠","♥","♦","♣"];
+        el.textContent = ranks[c%13] + suits[Math.floor(c/13)%4];
+        el.onclick = () => { if (phase !== "hold") return; holds[i] = !holds[i]; paint(); };
+        $("pokerH").appendChild(el);
+      });
+    };
+    $("dealP").onclick = () => {
+      stake = Number($("stake").value);
+      const err = canBet(stake); if (err) return $("out").innerHTML = outcome(err, 0);
+      deck = [...Array(52).keys()].sort(()=>rnd()-.5);
+      hand = [0,1,2,3,4].map(()=>deck.pop());
+      holds = [false,false,false,false,false];
+      phase = "hold";
+      $("drawP").disabled = false;
+      $("out").innerHTML = outcome("Hold the keepers, then draw.", 0);
+      paint();
+    };
+    $("drawP").onclick = () => {
+      if (phase !== "hold") return;
+      hand = hand.map((c,i) => holds[i] ? c : deck.pop());
+      phase = "done"; $("drawP").disabled = true;
+      const r = pokerRank(hand);
+      const pay = r >= 0 ? POKER_PAY[r][1] : 0;
+      const pnl = pay ? +(stake * pay).toFixed(2) : -stake;
+      ledger("cash", pnl, r>=0 ? POKER_PAY[r][0] : "Poker fold");
+      $("out").innerHTML = outcome((r>=0?POKER_PAY[r][0]:"No hand") + ` · ${pnl>=0?"+":""}${fmt(pnl)}`, pnl);
+      paint();
+    };
+  }
+
+  function drawHoldem() {
+    title("Heads-up Hold'em", "You and the house. Board runs. Best five.");
+    return `<div class="card">
+      <div class="row">${stakeBox()}<button class="btn" id="dealH">Deal</button></div>
+      <p class="muted" style="margin-top:12px">Board</p><div class="tiles" id="boardH"></div>
+      <p class="muted" style="margin-top:12px">You</p><div class="tiles" id="youH"></div>
+      <p class="muted" style="margin-top:12px">House</p><div class="tiles" id="houseH"></div>
+      <div id="out"></div>
+    </div>`;
+  }
+  function bindHoldem() {
+    $("dealH").onclick = () => {
+      const stake = Number($("stake").value);
+      const err = canBet(stake); if (err) return $("out").innerHTML = outcome(err, 0);
+      const deck = [...Array(52).keys()].sort(()=>rnd()-.5);
+      const you = [deck.pop(), deck.pop()];
+      const house = [deck.pop(), deck.pop()];
+      const board = [deck.pop(), deck.pop(), deck.pop(), deck.pop(), deck.pop()];
+      const score = (hole) => {
+        const pool = hole.concat(board);
+        let best = -2;
+        for (let a=0;a<6;a++) for (let b=a+1;b<7;b++) {
+          const five = pool.filter((_,i)=>i!==a && i!==b);
+          const r = pokerRank(five);
+          if (r !== -1 && (best === -2 || r < best)) best = r;
+        }
+        return best === -2 ? 99 : best;
+      };
+      const ys = score(you), hs = score(house);
+      $("boardH").innerHTML = board.map(face).join("");
+      $("youH").innerHTML = you.map(face).join("");
+      $("houseH").innerHTML = house.map(face).join("");
+      let pnl = 0, msg = "Split";
+      if (ys < hs) { pnl = stake; msg = "You take it"; }
+      else if (hs < ys) { pnl = -stake; msg = "House"; }
+      ledger("cash", pnl, "Hold'em " + msg);
+      $("out").innerHTML = outcome(`${msg} · ${pnl>=0?"+":""}${fmt(pnl)}`, pnl);
+    };
+  }
+
+  function drawLotto() {
+    title("Daily Lotto", "Pick six numbers from 1–49. Jackpot is 200× on six hits.");
+    S._lotto = S._lotto || [];
+    return `<div class="card">
+      <div class="row">${stakeBox()}<button class="btn ghost" id="quick">Quick pick</button><button class="btn" id="drawL">Draw</button></div>
+      <div class="numgrid" id="nums" style="margin:14px 0"></div>
+      <div id="out"></div>
+    </div>`;
+  }
+  function bindLotto() {
+    const box = $("nums");
+    const paint = () => {
+      box.innerHTML = "";
+      for (let n = 1; n <= 49; n++) {
+        const b = document.createElement("button");
+        b.textContent = n;
+        if (S._lotto.includes(n)) b.classList.add("on");
+        b.onclick = () => {
+          if (S._lotto.includes(n)) S._lotto = S._lotto.filter(x => x !== n);
+          else if (S._lotto.length < 6) S._lotto.push(n);
+          paint();
+        };
+        box.appendChild(b);
+      }
+    };
+    paint();
+    $("quick").onclick = () => {
+      const pool = [...Array(49)].map((_,i)=>i+1).sort(()=>rnd()-.5);
+      S._lotto = pool.slice(0,6).sort((a,b)=>a-b);
+      paint();
+    };
+    $("drawL").onclick = () => {
+      if (S._lotto.length !== 6) return $("out").innerHTML = outcome("Pick six numbers.", 0);
+      const stake = Number($("stake").value);
+      const err = canBet(stake); if (err) return $("out").innerHTML = outcome(err, 0);
+      const draw = [...Array(49)].map((_,i)=>i+1).sort(()=>rnd()-.5).slice(0,6).sort((a,b)=>a-b);
+      const hits = S._lotto.filter(n => draw.includes(n)).length;
+      const table = {0:0,1:0,2:0.5,3:3,4:12,5:40,6:200};
+      const mult = table[hits];
+      const pnl = mult ? +(stake * (mult - (mult?1:0))).toFixed(2) : -stake;
+      const adj = hits >= 2 ? +(stake * mult - stake).toFixed(2) : -stake;
+      ledger("cash", adj, `Lotto ${hits}/6`);
+      $("out").innerHTML = outcome(`Drawn ${draw.join(", ")} · ${hits} hit · ${adj>=0?"+":""}${fmt(adj)}`, adj);
+    };
+  }
+
+  function drawSports() {
+    title("Sportsbook", "Mock boards. Same wallet. Press settle to resolve a ticket.");
+    const slip = S.slip.map((x,i)=>`<div>${x.event} · ${x.pick} @ ${x.odds} <button class="btn ghost" data-rm="${i}">x</button></div>`).join("") || "<p class='muted'>Slip empty.</p>";
+    return `<div class="grid" style="grid-template-columns:2fr 1fr">
+      <div class="card">${SPORTS.map(ev => `
+        <div style="margin-bottom:14px">
+          <p class="muted">${ev.league}</p>
+          <h3 style="font-size:22px">${ev.event}</h3>
+          <div class="row" style="margin-top:8px">${Object.entries(ev.markets).map(([k,o]) =>
+            `<button class="btn ghost" data-add='${JSON.stringify({id:ev.id,event:ev.event,pick:k,odds:o})}'>${k} ${o.toFixed(2)}</button>`).join("")}
+          </div>
+        </div>`).join("")}</div>
+      <div class="slip">
+        <h3 style="font-size:22px;margin-bottom:8px">Slip</h3>
+        ${slip}
+        <div class="row" style="margin-top:10px">${stakeBox("sStake")}<button class="btn" id="place">Place</button></div>
+        <p class="muted" style="margin-top:8px">Singles only in this demo. Parlay math lives in the same slip object.</p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3 style="font-size:22px">Open tickets</h3>
+      <table><tr><th>Event</th><th>Pick</th><th>Stake</th><th></th></tr>
+      ${S.bets.filter(b=>b.live).map(b=>`<tr><td>${b.event}</td><td>${b.pick} @ ${b.odds}</td><td>${fmt(b.stake)}</td>
+        <td><button class="btn ghost" data-settle="${b.id}">Settle</button></td></tr>`).join("") || "<tr><td colspan='4' class='muted'>None</td></tr>"}
+      </table>
+    </div>`;
+  }
+  function bindSports() {
+    document.querySelectorAll("[data-add]").forEach(btn => {
+      btn.onclick = () => { S.slip.push(JSON.parse(btn.dataset.add)); save(); draw(); };
+    });
+    document.querySelectorAll("[data-rm]").forEach(btn => {
+      btn.onclick = () => { S.slip.splice(Number(btn.dataset.rm),1); save(); draw(); };
+    });
+    const place = $("place");
+    if (place) place.onclick = () => {
+      if (!S.slip.length) return;
+      const stake = Number($("sStake").value);
+      const err = canBet(stake); if (err) return alert(err);
+      const line = S.slip[0];
+      S.cash -= stake; S.vip.wagered += stake;
+      S.bets.unshift({ id: uid(), ...line, stake, live: true, t: Date.now() });
+      S.slip = [];
+      S.txs.unshift({ id: uid(), t: Date.now(), bag: "cash", amount: -stake, note: "Sports " + line.event, bal: S.cash });
+      save(); renderChrome(); draw();
+    };
+    document.querySelectorAll("[data-settle]").forEach(btn => {
+      btn.onclick = () => {
+        const b = S.bets.find(x => x.id === btn.dataset.settle);
+        if (!b || !b.live) return;
+        b.live = false;
+        const win = rnd() < (1 / b.odds);
+        if (win) {
+          const ret = +(b.stake * b.odds).toFixed(2);
+          S.cash += ret;
+          S.txs.unshift({ id: uid(), t: Date.now(), bag: "cash", amount: ret, note: "Won " + b.event, bal: S.cash });
+        }
+        save(); renderChrome(); draw();
+      };
+    });
+  }
+
+  function drawMarkets() {
+    title("Prediction markets", "Buy yes or no with play chips. Oracle in this demo is a coin flip.");
+    return `<div class="grid games">${MARKETS.map(m => `
+      <div class="card">
+        <h3 style="font-size:22px">${m.q}</h3>
+        <p class="muted">Yes ${(m.yes*100).toFixed(0)}¢ · No ${(m.no*100).toFixed(0)}¢</p>
+        <div class="row" style="margin-top:10px">
+          <input data-st="${m.id}" type="number" value="20" style="width:90px" />
+          <button class="btn" data-buy="${m.id}|yes">Yes</button>
+          <button class="btn ghost" data-buy="${m.id}|no">No</button>
+        </div>
+      </div>`).join("")}</div>
+      <div id="out"></div>`;
+  }
+  function bindMarkets() {
+    document.querySelectorAll("[data-buy]").forEach(btn => {
+      btn.onclick = () => {
+        const [id, side] = btn.dataset.buy.split("|");
+        const m = MARKETS.find(x => x.id === id);
+        const stake = Number(document.querySelector(`[data-st="${id}"]`).value);
+        const err = canBet(stake); if (err) return alert(err);
+        const px = side === "yes" ? m.yes : m.no;
+        const win = rnd() < px;
+        const pnl = win ? +(stake * ((1/px) - 1)).toFixed(2) : -stake;
+        ledger("cash", pnl, `Market ${side} · ${m.q}`);
+        $("out").innerHTML = outcome(`${m.q} resolved ${win?"with you":"against you"} · ${pnl>=0?"+":""}${fmt(pnl)}`, pnl);
+      };
+    });
+  }
+
+  function drawCashier() {
+    title("Cashier", "Dual wallet. Cash is withdrawable. Bonus stays in-product.");
+    return `<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+      <div class="card">
+        <h3>Deposit</h3>
+        <p class="muted">Faucet stands in for card, EFT, BTC, USDT, SnapScan.</p>
+        <div class="row" style="margin-top:10px">
+          <select id="rail"><option>Play chips</option><option>USDT (sim)</option><option>BTC (sim)</option><option>ZAR EFT (sim)</option></select>
+          <input id="dep" type="number" value="500" style="width:110px" />
+          <button class="btn" id="doDep">Credit</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Withdraw</h3>
+        <p class="muted">Bonus chips cannot leave. Withdrawals here just move cash to a pending rail.</p>
+        <div class="row" style="margin-top:10px">
+          <input id="wd" type="number" value="100" style="width:110px" />
+          <button class="btn ghost" id="doWd">Request</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Convert bonus</h3>
+        <p class="muted">Wagering 1x unlocks bonus into cash in this demo.</p>
+        <button class="btn ghost" id="unlock" style="margin-top:10px">Unlock ${fmt(S.bonus)}</button>
+      </div>
+    </div>`;
+  }
+  function bindCashier() {
+    $("doDep").onclick = () => {
+      const n = Number($("dep").value);
+      if (n > 0 && n <= 5000) ledger("cash", n, "Cashier " + $("rail").value);
+    };
+    $("doWd").onclick = () => {
+      const n = Number($("wd").value);
+      if (n > 0 && S.cash >= n) ledger("cash", -n, "Withdraw requested");
+      else alert("Not enough cash.");
+    };
+    $("unlock").onclick = () => {
+      if (S.bonus <= 0) return;
+      const n = S.bonus; S.bonus = 0; ledger("cash", n, "Bonus unlocked");
+    };
+  }
+
+  function drawVault() {
+    title("Ledger", "Every chip movement is a journal row. This is the PAM heart.");
+    return `<div class="card"><table>
+      <tr><th>When</th><th>Note</th><th>Amount</th><th>Cash after</th></tr>
+      ${S.txs.map(t => `<tr><td>${new Date(t.t).toLocaleTimeString()}</td><td>${t.note}</td>
+        <td class="${t.amount>=0?"good":"bad"}">${t.amount>=0?"+":""}${fmt(t.amount)}</td><td>${fmt(t.bal)}</td></tr>`).join("") || "<tr><td colspan='4' class='muted'>Empty</td></tr>"}
+    </table></div>`;
+  }
+
+  function drawVip() {
+    const rake = +(S.vip.wagered * 0.005).toFixed(2);
+    title("VIP / rakeback", "NuxGame-style engagement: activity earns, not only losses.");
+    return `<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+      <div class="card stat"><p class="muted">Wagered</p><h3>${fmt(S.vip.wagered)}</h3></div>
+      <div class="card stat"><p class="muted">Rakeback accrued (0.5%)</p><h3>${fmt(rake - S.vip.rake)}</h3></div>
+      <div class="card">
+        <h3>Spin wheel</h3>
+        <p class="muted">Daily engagement toy. Pays bonus chips.</p>
+        <button class="btn" id="spinW" style="margin-top:10px">Spin</button>
+        <div id="out"></div>
+      </div>
+    </div>`;
+  }
+  function bindVip() {
+    $("spinW").onclick = () => {
+      const prize = pick([10,20,25,40,80,120]);
+      ledger("bonus", prize, "Wheel");
+      $("out").innerHTML = outcome(`Wheel paid ${prize} bonus`, 1);
+    };
+  }
+
+  function drawVendors() {
+    title("Vendors & adapters", "Add a studio by dropping an adapter. Do not fork the lobby.");
+    return `<div class="card">
+      <p class="muted" style="margin-bottom:12px">Live games in this demo are in-house. Pragmatic, Evolution, Hacksaw, Genius Sports are listed as the real next contracts. The wallet API is the same either way: authenticate, debit, credit, rollback.</p>
+      <table>
+        <tr><th>Vendor</th><th>Kind</th><th>Status</th><th>Adapter</th></tr>
+        ${VENDORS.map(v => `<tr><td>${v.name}</td><td>${v.kind}</td><td>${v.status}</td><td><code>${v.adapter}</code></td></tr>`).join("")}
+      </table>
+      <pre style="margin-top:16px;white-space:pre-wrap;color:#cfc6b0;font-size:12px">{
+  "vendorId": "pragmatic",
+  "handshake": "seamless-wallet/v1",
+  "endpoints": ["/authenticate", "/balance", "/debit", "/credit", "/rollback"],
+  "geo": ["ZA-exclude-casino-realmoney"],
+  "currency": ["CHIP", "USDT", "ZAR"]
+}</pre>
+    </div>`;
+  }
+
+  function drawAffiliates() {
+    title("Affiliates / agents", "NuxGame ships multi-tier agents. This demo keeps the tree visible.");
+    return `<div class="card">
+      <table>
+        <tr><th>Node</th><th>Role</th><th>Rev share</th><th>Players</th></tr>
+        <tr><td>House</td><td>Operator</td><td>100%</td><td>—</td></tr>
+        <tr><td>Cape desk</td><td>Master agent</td><td>25%</td><td>412</td></tr>
+        <tr><td>JHB media</td><td>Affiliate</td><td>30% CPA hybrid</td><td>188</td></tr>
+        <tr><td>Telegram cell</td><td>Sub-agent</td><td>12%</td><td>67</td></tr>
+      </table>
+      <p class="muted" style="margin-top:12px">Wire later to Post Affiliate Pro or a first-party tree in PAM. Do not bake commissions into game code.</p>
+    </div>`;
+  }
+
+  function drawOffice() {
+    title("Back office", "Brand, game flags, limits. White-label starts here.");
+    return `<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+      <div class="card">
+        <h3>Skin</h3>
+        <div class="row" style="margin-top:10px">
+          <input id="bn" value="${S.brand.name}" />
+          <button class="btn" id="saveB">Save name</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Limits</h3>
+        <div class="row" style="margin-top:10px">
+          <input id="mx" type="number" value="${S.limits.maxBet}" />
+          <button class="btn ghost" id="saveL">Max bet</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Catalog flags</h3>
+        ${GAMES.map(g => `<label style="display:block;margin:6px 0"><input type="checkbox" data-en="${g.id}" ${S.enabled[g.id]!==false?"checked":""}/> ${g.name}</label>`).join("")}
+      </div>
+    </div>
+    <p class="muted" style="margin-top:12px">Reset local demo: <button class="btn bad" id="wipe">Wipe wallet</button></p>`;
+  }
+  function bindOffice() {
+    $("saveB").onclick = () => { S.brand.name = $("bn").value || "VELA"; save(); renderChrome(); };
+    $("saveL").onclick = () => { S.limits.maxBet = Number($("mx").value) || 500; save(); };
+    document.querySelectorAll("[data-en]").forEach(ch => {
+      ch.onchange = () => { S.enabled[ch.dataset.en] = ch.checked; save(); };
+    });
+    $("wipe").onclick = () => { localStorage.removeItem(KEY); S = load(); save(); draw(); };
+  }
+
+  function drawStack() {
+    title("Open-source stack", "What we leverage, what we buy, what we never fake.");
+    return `<div class="card">
+      <table>
+        <tr><th>Layer</th><th>Use now</th><th>Graduate to</th></tr>
+        <tr><td>PAM / plugins</td><td>This demo ledger + Openora mindset</td><td>Openora, formeo wallet, OpenWager PAM</td></tr>
+        <tr><td>Originals</td><td>These games</td><td>vFair Games (Dice/Mines/Plinko/Keno)</td></tr>
+        <tr><td>Sports skeleton</td><td>Mock boards</td><td>OpenWager PulseFeed + The Odds API</td></tr>
+        <tr><td>Sports production</td><td>—</td><td>Genius Sports / Betradar (paid)</td></tr>
+        <tr><td>Slots / live</td><td>Adapter stubs</td><td>SoftSwiss / EveryMatrix / NuxGame aggregator (paid, licensed)</td></tr>
+        <tr><td>Markets</td><td>Yes/No demo</td><td>Gnosis Conditional Tokens + UMA oracle</td></tr>
+        <tr><td>Poker real tables</td><td>Video + HU demo</td><td>Specialist poker network, not a GitHub clone</td></tr>
+        <tr><td>Host</td><td>Static + localStorage</td><td>Fly.io / AWS, Neon Postgres, Redis, Cloudflare</td></tr>
+        <tr><td>Agents</td><td>Back office flags</td><td>OpenAPI + MCP on PAM, spend caps</td></tr>
+      </table>
+      <p class="muted" style="margin-top:14px">NuxGame’s real moat is 18k aggregator titles, Genius feeds, Corefy payments, and a licence umbrella. Those are contracts. This repo is the operator shell you keep when you swap vendors.</p>
+    </div>`;
+  }
+
+  function drawRg() {
+    title("Responsible play", "Ship this before the lobby, not after the first complaint.");
+    return `<div class="card">
+      <p>This product uses play chips only. A real operator in South Africa still needs a provincial bookmaker path for sports. Online casino for real money is not a clean licence today.</p>
+      <ul style="margin:12px 0 0 18px;color:var(--muted);line-height:1.7">
+        <li>Deposit, loss, and session limits live in PAM, not in each game.</li>
+        <li>Self-exclusion is a hard wallet lock.</li>
+        <li>Reality checks on a timer.</li>
+        <li>Help: <a href="https://www.responsiblegambling.org.za/" target="_blank" rel="noopener">NRGP</a> · 0800 006 008</li>
+      </ul>
+    </div>`;
+  }
+
+  const pages = {
+    lobby: [drawLobby],
+    casino: [drawCasino],
+    dice: [drawDice, bindDice],
+    mines: [drawMines, bindMines],
+    plinko: [drawPlinko, bindPlinko],
+    crash: [drawCrash, bindCrash],
+    roulette: [drawRoulette, bindRoulette],
+    blackjack: [drawBlackjack, bindBlackjack],
+    poker: [drawPoker, bindPoker],
+    holdem: [drawHoldem, bindHoldem],
+    lotto: [drawLotto, bindLotto],
+    sports: [drawSports, bindSports],
+    markets: [drawMarkets, bindMarkets],
+    cashier: [drawCashier, bindCashier],
+    vault: [drawVault],
+    vip: [drawVip, bindVip],
+    vendors: [drawVendors],
+    affiliates: [drawAffiliates],
+    office: [drawOffice, bindOffice],
+    stack: [drawStack],
+    rg: [drawRg]
+  };
+
+  function draw() {
+    const hash = (location.hash.replace("#/", "") || S.route || "lobby");
+    S.route = pages[hash] ? hash : "lobby";
+    renderChrome();
+    const [view, bind] = pages[S.route];
+    $("app").innerHTML = view();
+    if (bind) bind();
+  }
+
+  window.addEventListener("hashchange", draw);
+  if (location.hash) S.route = location.hash.replace("#/", "") || "lobby";
+  draw();
+  </script>
+</body>
+</html>
